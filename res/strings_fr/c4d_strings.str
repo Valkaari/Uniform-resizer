@@ -1,0 +1,7 @@
+STRINGTABLE 
+{
+  DIALOG_TITLE           "Dimension Objet";
+    ID_VSIZEX               "Taille";
+    ID_HELP                  "Redimensionnement Homot\u00e9tic";
+
+}

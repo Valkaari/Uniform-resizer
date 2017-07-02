@@ -1,0 +1,6 @@
+STRINGTABLE 
+{
+  DIALOG_TITLE           "Resize object";
+    ID_VSIZEX               "Object's Size";
+    ID_HELP                  "Homotetic resize";
+}

@@ -1,0 +1,1 @@
+To install, just put this directory inside your cinema4D's plugins directory.
