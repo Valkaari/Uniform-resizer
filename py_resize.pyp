@@ -85,6 +85,8 @@ class ResizeObjectDialog(gui.GeDialog):
             ratio = c4d.Vector(ratio.z, ratio.z, ratio.z)
       
         #scale
+
+        
         points = op.GetAllPoints()
         scaledPoints = [ratio.x * point for point in points]
 
@@ -129,15 +131,8 @@ class ResizeObjectDialog(gui.GeDialog):
         return True
 
     def Command(self, id, msg):
-        if id == ID_VSIZEX:
+        if id == ID_VSIZEX or id == ID_VSIZEY or id == ID_VSIZEZ:
             self.ChangeSize()
-            
-        elif id == ID_VSIZEY:
-            self.ChangeSize()
-            
-        elif id == ID_VSIZEZ:
-            self.ChangeSize()
-            
         return True
 
     
