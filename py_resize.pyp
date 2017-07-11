@@ -7,6 +7,7 @@ import os
 
 
 from c4d import plugins, utils, bitmaps, gui, documents
+from c4d.utils import CompareFloatTolerant
 # be sure to use a unique ID obtained from www.plugincafe.com
 PLUGIN_ID = 1028518
 dlg_pyresize		  		 =   10001
@@ -36,7 +37,8 @@ class ResizeObjectDialog(gui.GeDialog):
         if not op:
             self.FieldActive(False)
             return False
-        if not (op.CheckType(c4d.Opolygon)):
+            
+        if not (op.CheckType(c4d.Opolygon)) and not (op.CheckType(c4d.Ospline)):
             #op is not a polygon object, desable field
             self.FieldActive(False)
             self.SetReal(ID_VSIZEX, 0.0)
@@ -59,7 +61,6 @@ class ResizeObjectDialog(gui.GeDialog):
             self.SetReal(ID_VSIZEZ, newsize.z)
             self.actualSize = newsize
 
-    
            
         
     def ChangeSize(self):
@@ -68,21 +69,35 @@ class ResizeObjectDialog(gui.GeDialog):
         self.doc = c4d.documents.GetActiveDocument()
         op = self.doc.GetActiveObject()
         if not op: return False
-        if not (op.CheckType(c4d.Opolygon)): return False
+        if not (op.CheckType(c4d.Opolygon)) and not (op.CheckType(c4d.Ospline)): return False
 
-        #calculer le ration pour toutes les dimensions
+        #calculer le ration pour toutes les dimensions éviter les divisions par 0 pour les splines ou objet plat.
         ratio = c4d.Vector(1.0,1.0,1.0)
-        ratio.x = self.GetReal(ID_VSIZEX) / self.actualSize.x
-        ratio.y = self.GetReal(ID_VSIZEY) / self.actualSize.y
-        ratio.z = self.GetReal(ID_VSIZEZ) / self.actualSize.z
+        if CompareFloatTolerant(self.actualSize.x,0.0):
+            ratio.x = 1.0
+        else:
+            ratio.x = self.GetReal(ID_VSIZEX) / self.actualSize.x
 
-        # know what dimension have change
-        if (round(ratio.x,5)!= 1.0):
+        if CompareFloatTolerant(self.actualSize.y,0.0):
+            ratio.y = 1.0
+        else:
+            ratio.y = self.GetReal(ID_VSIZEY) / self.actualSize.y
+
+        if CompareFloatTolerant(self.actualSize.z,0.0):
+            ratio.z = 1.0
+        else:
+            ratio.z = self.GetReal(ID_VSIZEZ) / self.actualSize.z
+        
+
+        # what dimension have change
+        if not CompareFloatTolerant(ratio.x, 1.0):
             ratio = c4d.Vector(ratio.x, ratio.x, ratio.x)
-        elif (round(ratio.y,5) <> 1.0):
+        elif not CompareFloatTolerant(ratio.y, 1.0):
             ratio = c4d.Vector(ratio.y, ratio.y, ratio.y)
-        elif (round(ratio.z,5) <> 1.0):
+        elif not CompareFloatTolerant(ratio.z, 1.0):
             ratio = c4d.Vector(ratio.z, ratio.z, ratio.z)
+
+            
       
         #scale
 
@@ -99,6 +114,11 @@ class ResizeObjectDialog(gui.GeDialog):
         self.doc.EndUndo()
         points = []
         scaledPoints = []
+
+        if op.CheckType(c4d.Ospline):
+            for i in xrange(op.GetTangentCount()):
+                tans = op.GetTangent(i)
+                op.SetTangent(i,tans['vl']* ratio.x, tans['vr']*ratio.x)
 
         #update cinema4D
         op.Message(c4d.MSG_UPDATE)
