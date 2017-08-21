@@ -1,0 +1,42 @@
+Installing Cinema4D's Plugins.
+
+
+Quick :
+The content of the zip file have to be copy and paste in the cinema4d's plugins subdirectory.
+
+
+Detailed :
+
+1. unzip the file you downloaded to a temporary location.
+The content should be a subdirectory named like the plugin's name (or almost)
+This folder should at least have a subdirectory named « res » and one or several files.
+
+2. find the plugin directory
+you got two options. Both are good.
+	A - Using the cinema4D's main directory
+		On windows by default 
+		c:/Programs/MAXON/CINEMA 4D Rxx/plugins/
+		where xx is the version of cinema4D
+
+		On osx by default
+		/Applications/MAXON/CINEMA 4D Rxx/plugins
+		where xx is the version of cinema4D
+
+	B - Using the user preferences folder.
+		- Open cinema4D's and the preferences panel (ctrl + e  or cmd + e)
+		- There's a button “Open Preferences Folder you have to click.
+		- You should end with a folder selected name CINEMA 4D Rxx_xxxxxx (the x are specific to the version and random number/letters)
+		Inside this folder you should find your plugins directory
+
+		typically : 
+		on windows
+		C:\Users\<Name>\AppData\Roaming\MAXON\CINEMA 4D Rxx_xxxxxx\plugins
+		on osx :
+		/Users/<Name>/Library/Preferences/MAXON/CINEMA 4D Rxx_xxxxxx/plugins
+
+3. close cinema4D application and relaunch
+If you already cinema4D's opened, you have to close it and relaunch it.
+
+
+4. you should see the plugin.
+The plugin should be visible in your plugins' menu inside cinema4D.
