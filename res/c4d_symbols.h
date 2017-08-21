@@ -9,13 +9,12 @@
 
 enum
 {
-    dlg_pyresize				=   10001,
-    DIALOG_TITLE                =   10002,
-    ID_VSIZEX                    =   10003,
-    ID_VSIZEY                    =   10004,
-    ID_VSIZEZ                    =   10005,
-    SIZEGROUP                    =   10006,
-    ID_HELP                      =   10007,
+    DIALOG_TITLE                =   10001,
+    ID_VSIZEX                    ,
+    ID_VSIZEY                    ,
+    ID_VSIZEZ                    ,
+    SIZEGROUP                    ,
+    ID_HELP                      ,
     
     
     

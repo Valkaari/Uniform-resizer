@@ -18,13 +18,13 @@ YSTR                        =   1004
 ZSTR                        =   1005
 
 
-dlg_pyresize		  		=   10001
-DIALOG_TITLE                =   10002
-ID_VSIZEX                   =   10003
-ID_VSIZEY                   =   10004
-ID_VSIZEZ                   =   10005
-SIZEGROUP                   =   10006
-ID_HELP                     =   10007
+
+DIALOG_TITLE                =   10001
+ID_VSIZEX                   =   10002
+ID_VSIZEY                   =   10003
+ID_VSIZEZ                   =   10004
+SIZEGROUP                   =   10005
+ID_HELP                     =   10006
 
 
 
@@ -263,11 +263,11 @@ if __name__ == "__main__":
     # load icon.tif from res into bmp
     bmp = bitmaps.BaseBitmap()
     dir, file = os.path.split(__file__)
-    fn = os.path.join(dir, "res","icons", "pyresize.tif")
+    fn = os.path.join(dir, "res","icons", "objectresize.tif")
     bmp.InitWith(fn)
     # register the plugin
     plugins.RegisterCommandPlugin(id=PLUGIN_ID, 
-                                  str="Py-resize",
+                                  str="Object-resize",
                                   info=0,
                                   help=c4d.plugins.GeLoadString(ID_HELP), 
                                   dat=ResizeObject(),
