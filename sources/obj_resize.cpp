@@ -45,15 +45,41 @@ Bool ObjectResizeDialog::UpdateUI_()
     
     
     if (docMode==Mpoints)
-       GePrint("point mode");
-    if (docMode==Medges)
-        GePrint("edges mode");
-    if (docMode==Mpolygons)
-        GePrint("poly mode");
-    if (docMode == Muvpolygons)
-        GePrint("uvpoly mode");
-    
+    {
+        // get all points of all objects
+        LMinMax bb;
+        bb.Init();
+        for (Int32 i = 0 ; i < selection->GetCount(); i++)
+        {
+            PointObject *op = (PointObject*) selection->GetIndex(i);
+            BaseSelect*  pbs = op->GetPointS();
+            const Vector *paddr  = op->GetPointR();
+            for (Int32 j = 0 ; j < op->GetPointCount(); j++, paddr++)
+            {
+                if (pbs->IsSelected(j))
+                    bb.AddPoint(*paddr);
+            }
+        }
+
         
+        ActivateField(true);
+        actualSize_ = bb.GetRad();
+        SetUIValue_(actualSize_.x, actualSize_.y, actualSize_.z);
+        
+        
+    }
+        
+        
+        
+    
+//    if (docMode==Medges)
+//        GePrint("edges mode");
+//    if (docMode==Mpolygons)
+//        GePrint("poly mode");
+//    if (docMode == Muvpolygons)
+//        GePrint("uvpoly mode");
+//    
+    
     
     if (docMode == Mobject)
     {

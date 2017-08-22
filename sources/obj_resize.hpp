@@ -61,6 +61,10 @@ private :
     Bool SetUIValue_ (Float sizeX, Float sizeY, Float sizeZ);
     
     
+    
+    Vector GetSelectionSize_(BaseSelect *bs);
+    
+    
     //----------------------------------------------------------------------------------------
     ///Get the size of the object
     ///@param[in] op the object to get the size from
