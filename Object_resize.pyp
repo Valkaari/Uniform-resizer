@@ -266,9 +266,11 @@ if __name__ == "__main__":
     fn = os.path.join(dir, "res","icons", "objectresize.tif")
     bmp.InitWith(fn)
     # register the plugin
+    """
     plugins.RegisterCommandPlugin(id=PLUGIN_ID, 
                                   str="Object-resize",
                                   info=0,
                                   help=c4d.plugins.GeLoadString(ID_HELP), 
                                   dat=ResizeObject(),
                                   icon=bmp)
+    """

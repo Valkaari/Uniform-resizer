@@ -26,22 +26,32 @@ public:
 
 private :
     
-    Bool    multiObject_; ///< multi object are selected.
-    Vector  actualSize_; ///< actual size of the object 0 if error 1 if multiple object selected.
+//    Vector  actualSize_; ///< actual size of the object 0 if error 1 if multiple object selected.
     
     
+    
+    Float GetRatio(Vector actualSize );
     
     //----------------------------------------------------------------------------------------
     ///update the UI with the size of object or disable fields
     ///@return true if success
     //----------------------------------------------------------------------------------------
     Bool UpdateUI_(void);
+    //----------------------------------------------------------------------------------------
+    ///set the fields value
+    ///@param[in] sizeX the size in the X direction
+    ///@param[in] sizeY the size in the Y direction
+    ///@param[in] sizeZ the size in the Z direction
+    ///@return true if ok
+    //----------------------------------------------------------------------------------------
+    Bool SetUIValue_ (Float sizeX, Float sizeY, Float sizeZ, Bool tristate = false);
+    
     
     //----------------------------------------------------------------------------------------
     ///activate or desactivate the ui
     ///@param[in] status true if the field must be activated of false if not
     //----------------------------------------------------------------------------------------
-    void ActivateField(Bool status);
+    void ActivateField_(Bool status);
     
     //----------------------------------------------------------------------------------------
     ///check if the object type in the array are opolygon or opsline
@@ -50,28 +60,12 @@ private :
     //----------------------------------------------------------------------------------------
     Bool CheckObjectType_ (AtomArray *objList);
     
-    
-    //----------------------------------------------------------------------------------------
-    ///set the fields value
-    ///@param[in] sizeX the size in the X direction
-    ///@param[in] sizeY the size in the Y direction
-    ///@param[in] sizeZ the size in the Z direction
-    ///@return true if ok
-    //----------------------------------------------------------------------------------------
-    Bool SetUIValue_ (Float sizeX, Float sizeY, Float sizeZ);
-    
-    
-    
-    Vector GetSelectionSize_(BaseSelect *bs);
-    
-    
     //----------------------------------------------------------------------------------------
     ///Get the size of the object
     ///@param[in] op the object to get the size from
     ///@return the size in a vector form
     //----------------------------------------------------------------------------------------
     Vector GetObjectSize_(BaseObject* op);
-    
     
     //----------------------------------------------------------------------------------------
     ///scale the object with the ratio
@@ -81,13 +75,32 @@ private :
     //----------------------------------------------------------------------------------------
     Bool ScaleObject_(BaseObject* op,Float &ratio);
     
-    
     //----------------------------------------------------------------------------------------
-    ///called if the user entered a size in the ui.
+    ///Scale one or several objects.
     ///@return true objects have been resized
     //----------------------------------------------------------------------------------------
-    Bool SizeChanged_(void);
+    Bool ModifyScaleObject_(void);
     
+    
+    //----------------------------------------------------------------------------------------
+    ///Get the bounding box of the selected elements
+    ///@param[in] op the object the selection is comming from.
+    ///@return Vector the size.
+    //----------------------------------------------------------------------------------------
+    Vector GetSelectionSize_(C4DAtom* op);
+    
+    
+    
+    //----------------------------------------------------------------------------------------
+    ///Scale the selection
+    ///@return true if success
+    //----------------------------------------------------------------------------------------
+    
+    Bool ModifyScaleSelection_(void);
+    
+    
+    
+    Bool Modification_(void);
     
 };
 
