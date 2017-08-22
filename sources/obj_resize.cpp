@@ -222,42 +222,11 @@ Bool ObjectResizeDialog::ModifyScaleObject_()
     else
     {
         BaseObject *op = (BaseObject*)selection->GetIndex(0);
-        Vector actualSize_ = GetObjectSize_(op);
-        Vector ratio = Vector(1.0);
-        // avoid divide by 0
-        if (CompareFloatTolerant(actualSize_.x, 0.0))
-            ratio.x = 1.0;
-        else
-        {
-            GetFloat(ID_VSIZEX, ratio.x);
-            ratio.x /= actualSize_.x;
-        }
-        
-        if (CompareFloatTolerant(actualSize_.y, 0.0))
-            ratio.y = 1.0;
-        else
-        {
-            GetFloat(ID_VSIZEY, ratio.y);
-            ratio.y /= actualSize_.y;
-        }
-        if (CompareFloatTolerant(actualSize_.z, 0.0))
-            ratio.z = 1.0;
-        else
-        {
-            GetFloat(ID_VSIZEY, ratio.z);
-            ratio.z /= actualSize_.z;
-        }
-        
-        if (!CompareFloatTolerant(ratio.x, 1.0))
-            ratio = Vector(ratio.x);
-        else if (!CompareFloatTolerant(ratio.y, 1.0))
-            ratio = Vector(ratio.y);
-        else if (!CompareFloatTolerant(ratio.z, 1.0))
-            ratio = Vector(ratio.z);
+        Float ratio = GetRatio(GetObjectSize_(op));
         
         doc->StartUndo();
         doc->AddUndo(UNDOTYPE_CHANGE, op);
-        ScaleObject_(op, ratio.x);
+        ScaleObject_(op, ratio);
         
         doc->EndUndo();
         
@@ -292,7 +261,7 @@ Vector ObjectResizeDialog::GetSelectionSize_(C4DAtom* op)
 Float ObjectResizeDialog::GetRatio(Vector actualSize)
 {
     
-    
+    //avoid divide by zero
     Vector ratio = Vector(1.0);
     // avoid divide by 0
     if (CompareFloatTolerant(actualSize.x, 0.0))
@@ -369,7 +338,22 @@ Bool ObjectResizeDialog::ModifyScaleSelection_()
             if (bs->IsSelected(i))
                 *paddr = ~mg * mdaxis * (ratio * (~mdaxis * mg * *paddr));
         
-        
+        if ((op->GetInfo() & OBJECT_ISSPLINE) == OBJECT_ISSPLINE)
+        {
+            SplineObject* opSpline = (SplineObject*)op;
+            if (opSpline->GetInterpolationType() == SPLINETYPE_BEZIER)
+            {
+                Tangent *top = opSpline->GetTangentW();
+                for (Int32 i = 0 ; i < opSpline->GetTangentCount(); i++, top++)
+                {
+                    if (bs->IsSelected(i))
+                    {
+                        top->vl *= ratio;
+                        top->vr *= ratio;
+                    }
+                }
+            }
+        }
         
         doc->EndUndo();
         op->Message(MSG_UPDATE);
