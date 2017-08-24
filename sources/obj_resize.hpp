@@ -85,9 +85,10 @@ private :
     //----------------------------------------------------------------------------------------
     ///Get the bounding box of the selected elements
     ///@param[in] op the object the selection is comming from.
+    ///@param[in] mode the kind of selection to check.
     ///@return Vector the size.
     //----------------------------------------------------------------------------------------
-    Vector GetSelectionSize_(C4DAtom* op);
+    Vector GetSelectionSize_(C4DAtom* op, Int32 mode);
     
     
     
@@ -99,7 +100,10 @@ private :
     Bool ModifyScaleSelection_(void);
     
     
-    
+    //----------------------------------------------------------------------------------------
+    ///main fonction that the document's mode and call the according function.
+    ///@return true or false.
+    //----------------------------------------------------------------------------------------
     Bool Modification_(void);
     
 };

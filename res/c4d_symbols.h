@@ -21,6 +21,9 @@ enum
     XSTR,
     YSTR,
     ZSTR,
+    LOCKX,
+    LOCKY,
+    LOCKZ,
     
     
 __DUMMY___    

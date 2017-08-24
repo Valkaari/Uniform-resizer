@@ -51,37 +51,35 @@ Bool ObjectResizeDialog::UpdateUI_()
     
     
     Int32 docMode = doc->GetMode();
+
+    //TODO: add the uvs
+    //    if (docMode == Muvpolygons)
+    //        GePrint("uvpoly mode");
+    //
+
     
-    
-    if (docMode==Mpoints)
+    if ((docMode == Mpoints) ||
+        (docMode == Mpolygons) ||
+        (docMode == Medges)
+        )
     {
+
         if (selection->GetCount() > 1 )
             SetUIValue_(-1.0, -1.0, -1.0, true);
         else
         {
             Vector actualSize (Vector(0));
-            // get all points of all objects
-            
-            for (Int32 i = 0 ; i < selection->GetCount(); i++)
-                actualSize = GetSelectionSize_(selection->GetIndex(i));
+            actualSize = GetSelectionSize_(selection->GetIndex(0), docMode);
             
             ActivateField_(true);
             SetUIValue_(actualSize.x, actualSize.y, actualSize.z);
         }
-        
     }
     
-//    if (docMode==Medges)
-//        GePrint("edges mode");
-//    if (docMode==Mpolygons)
-//        GePrint("poly mode");
-//    if (docMode == Muvpolygons)
-//        GePrint("uvpoly mode");
-//    
     
+    else if ((docMode = Mmodel) || (docMode == Mobject))
     
-    if ((docMode == Mmodel) || (docMode == Mobject))
-    {
+        {
         // all selected object have good type
         ActivateField_(true);
         if (selection->GetCount() > 1 )
@@ -106,8 +104,6 @@ Vector ObjectResizeDialog::GetObjectSize_(BaseObject *op)
 {
     
     //TODO: the size is not correct if the tangent are going outside form of the spline
- 
-    
     
     if (!op)
         return Vector(0);
@@ -115,7 +111,7 @@ Vector ObjectResizeDialog::GetObjectSize_(BaseObject *op)
 }
 Bool ObjectResizeDialog::SetUIValue_(Float sizeX, Float sizeY, Float sizeZ, Bool tristate)
 {
-    
+  
     if (!SetFloat(ID_VSIZEX, sizeX,-1.0e18,1.0e18,1.0,FORMAT_FLOAT,0.0,0.0, false,tristate))
         return false;
     if (!SetFloat(ID_VSIZEY, sizeY,-1.0e18,1.0e18,1.0,FORMAT_FLOAT,0.0,0.0, false,tristate))
@@ -138,9 +134,6 @@ Bool ObjectResizeDialog::ScaleObject_(BaseObject *op, Float &ratio)
     {
         *paddr *= ratio;
     }
-    
-    
-    
 
     if ((op->GetInfo() & OBJECT_ISSPLINE) == OBJECT_ISSPLINE)
     {
@@ -215,9 +208,6 @@ Bool ObjectResizeDialog::ModifyScaleObject_()
         
         doc->EndUndo();
         
-        
-        
-        
     }
     else
     {
@@ -239,21 +229,61 @@ Bool ObjectResizeDialog::ModifyScaleObject_()
     return true;
 }
 
-Vector ObjectResizeDialog::GetSelectionSize_(C4DAtom* op)
+Vector ObjectResizeDialog::GetSelectionSize_(C4DAtom* op, Int32 mode)
 {
     
     LMinMax bb;
     bb.Init();
+    PolygonObject* obj = (PolygonObject*)op;
+    BaseSelect* bs;
+    const Vector* paddr = obj->GetPointR();
     
-    PointObject *obj = ToPoly(op);
-    
-    BaseSelect*  pbs = obj->GetPointS();
-    const Vector *paddr  = obj->GetPointR();
-    for (Int32 j = 0 ; j < obj->GetPointCount(); j++, paddr++)
+    if (mode == Mpoints)
     {
-        if (pbs->IsSelected(j))
-            bb.AddPoint(*paddr);
+        bs = obj->GetPointS();
+        for (Int32 i = 0 ; i < obj->GetPointCount(); i++, paddr++)
+            if (bs->IsSelected(i))
+                bb.AddPoint(*paddr);
+        
     }
+    else if (mode == Mpolygons)
+    {
+        bs = obj->GetPolygonS();
+        const CPolygon* pcaddr = obj->GetPolygonR();
+        for (Int32 i = 0; i < obj->GetPolygonCount(); i++ , pcaddr++)
+            if (bs->IsSelected(i))
+                for (Int32 j= 0; j < 4; j++)
+                    bb.AddPoint(paddr[  (*pcaddr)[j] ]  );
+    }
+    else if (mode == Medges)
+    {
+        bs = obj->GetEdgeS();
+        const CPolygon* pcaddr = obj->GetPolygonR();
+        
+        for (Int32 i = 0 ; i < obj->GetPolygonCount() * 4; i ++)
+        {
+            if (bs->IsSelected(i))
+            {
+                const CPolygon &poly = pcaddr[ (Int32)( i / 4)];
+                Int32 edge = i % 4;
+                if (edge == 0)
+                    bb.AddPoints(paddr[poly.a],paddr[poly.b]);
+                if (edge == 1)
+                    bb.AddPoints(paddr[poly.b],paddr[poly.c]);
+                if (edge == 2)
+                    bb.AddPoints(paddr[poly.c],paddr[poly.d]);
+                if (edge == 3)
+                    bb.AddPoints(paddr[poly.d],paddr[poly.a]);
+                
+            }
+            
+        }
+
+        
+    }
+    
+    
+    
 
     return bb.GetRad()*2;
 }
@@ -283,7 +313,7 @@ Float ObjectResizeDialog::GetRatio(Vector actualSize)
         ratio.z = 1.0;
     else
     {
-        GetFloat(ID_VSIZEY, ratio.z);
+        GetFloat(ID_VSIZEZ, ratio.z);
         ratio.z /= actualSize.z;
     }
     
@@ -315,28 +345,88 @@ Bool ObjectResizeDialog::ModifyScaleSelection_()
     }
     else
     {
-        PointObject *op  =(PointObject*)selection->GetIndex(0);
+        PolygonObject *op  = (PolygonObject*)selection->GetIndex(0);
         
         const Matrix mdaxis = op->GetModelingAxis(doc);
         
         
         Vector *paddr = op->GetPointW();
-        GetSelectionSize_(selection->GetIndex(0));
+        
         BaseSelect *bs = op->GetPointS();
-        const Matrix mg = op->GetMg();
+        if (doc->GetMode() == Mpolygons)
+        {
+            bs->DeselectAll();
+            BaseSelect *pbc = op->GetPolygonS();
+            const CPolygon* pcaddr = op->GetPolygonR();
+            for (Int32 i = 0; i< op->GetPolygonCount(); i ++ , pcaddr++)
+            {
+                if (pbc->IsSelected(i))
+                {
+                    for (Int32 j = 0; j < 4 ; j++)
+                        bs->Select( (*pcaddr)[j]);
+                }
+            }
+        }
+        if (doc->GetMode() == Medges)
+        {
+            bs->DeselectAll();
+            BaseSelect *ebs = op->GetEdgeS();
+            const CPolygon* pcaddr = op->GetPolygonR();
+            
+            for (Int32 i = 0 ; i < op->GetPolygonCount() * 4; i ++)
+            {
+                if (ebs->IsSelected(i))
+                {
+                    const CPolygon &poly = pcaddr[ (Int32)( i / 4)];
+                    Int32 edge = i % 4;
+                    if (edge == 0)
+                    {
+                        bs->Select(poly.a);
+                        bs->Select(poly.b);
+                    }
 
-        // calculate the ration
+                    if (edge == 1)
+                    {
+                        bs->Select(poly.b);
+                        bs->Select(poly.c);
+                    }
+
+                    
+                    if (edge == 2)
+                    {
+                        bs->Select(poly.c);
+                        bs->Select(poly.d);
+                    }
+
+                    if (edge == 3)
+                    {
+                        bs->Select(poly.d);
+                        bs->Select(poly.a);
+                    }
+                    
+                }
+                
+            }
+
+        }
         
         
         
-        Float ratio = GetRatio(GetObjectSize_(op));
         
+        
+        const Matrix mg = op->GetMg();
+        
+        Float ratio = GetRatio(GetSelectionSize_(selection->GetIndex(0), doc->GetMode()));
         
         doc->StartUndo();
         doc->AddUndo(UNDOTYPE_CHANGE, op);
         for (Int32 i  = 0; i < op->GetPointCount(); i++, paddr++)
             if (bs->IsSelected(i))
                 *paddr = ~mg * mdaxis * (ratio * (~mdaxis * mg * *paddr));
+        
+        
+        
+        
         
         if ((op->GetInfo() & OBJECT_ISSPLINE) == OBJECT_ISSPLINE)
         {
@@ -359,17 +449,7 @@ Bool ObjectResizeDialog::ModifyScaleSelection_()
         op->Message(MSG_UPDATE);
             
         
-        
-        
-        
     }
-    
-    
-    
-    
-    
-    
-    
     
     return true;
 }
@@ -387,6 +467,8 @@ Bool ObjectResizeDialog::Modification_()
             ModifyScaleObject_();
             break;
         case Mpoints:
+        case Mpolygons:
+        case Medges:
             ModifyScaleSelection_();
             break;
     }
@@ -401,6 +483,10 @@ void ObjectResizeDialog::ActivateField_(Bool status)
     Enable(ID_VSIZEX, status);
     Enable(ID_VSIZEY, status);
     Enable(ID_VSIZEZ, status);
+    Enable(LOCKX, status);
+    Enable(LOCKY, status);
+    Enable(LOCKZ, status);
+    
 }
 
 Bool ObjectResizeDialog::InitValues()
@@ -408,6 +494,9 @@ Bool ObjectResizeDialog::InitValues()
     SetFloat(ID_VSIZEX, 0.0);
     SetFloat(ID_VSIZEY, 0.0);
     SetFloat(ID_VSIZEZ, 0.0);
+    SetBool(LOCKX, true);
+    SetBool(LOCKY, true);
+    SetBool(LOCKZ, true);
     ActivateField_(false);
     UpdateUI_();
     return true;
@@ -418,18 +507,21 @@ Bool ObjectResizeDialog::CreateLayout()
     
     SetTitle(GeLoadString(DIALOG_TITLE));
     GroupBegin(SIZEGROUP, BFH_SCALEFIT, 3, 1, "", 0);
-        GroupBegin(XGROUP, BFH_SCALEFIT, 2, 1, "", 0);
+        GroupBegin(XGROUP, BFH_SCALEFIT, 3, 1, "", 0);
         AddStaticText(XSTR, BFH_FIT, 10, 10, "X", BORDER_NONE);
+        AddCheckbox(LOCKX, BFH_FIT,SizeChr(1) , SizeChr( 1), "");
         AddEditNumber(ID_VSIZEX, BFH_SCALEFIT);
         GroupEnd();
     
-        GroupBegin(YGROUP, BFH_SCALEFIT, 2, 1, "", 0);
+        GroupBegin(YGROUP, BFH_SCALEFIT, 3, 1, "", 0);
         AddStaticText(YSTR, BFH_FIT, 10, 10, "Y", BORDER_NONE);
+        AddCheckbox(LOCKY, BFH_FIT,SizeChr(1) , SizeChr(1), "");
         AddEditNumber(ID_VSIZEY, BFH_SCALEFIT);
         GroupEnd();
     
-        GroupBegin(ZGROUP, BFH_SCALEFIT, 2, 1, "", 0);
+        GroupBegin(ZGROUP, BFH_SCALEFIT, 3, 1, "", 0);
         AddStaticText(ZSTR, BFH_FIT, 10, 10, "Z", BORDER_NONE);
+        AddCheckbox(LOCKZ, BFH_FIT,SizeChr(1) , SizeChr(1), "");
         AddEditNumber(ID_VSIZEZ, BFH_SCALEFIT);
         GroupEnd();
     
