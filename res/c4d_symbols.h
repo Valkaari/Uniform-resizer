@@ -15,11 +15,19 @@ enum
     ID_VSIZEZ                    ,
     SIZEGROUP                    ,
     ID_HELP                      ,
-    
+    XGROUP,
+    YGROUP,
+    ZGROUP,
+    XSTR,
+    YSTR,
+    ZSTR,
+    LOCKX,
+    LOCKY,
+    LOCKZ,
     
     
 __DUMMY___    
     
-}
+};
 
 
