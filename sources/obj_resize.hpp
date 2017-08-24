@@ -117,6 +117,10 @@ private :
     //----------------------------------------------------------------------------------------
     Bool Modification_(void);
     
+    
+    Bool GetUVWSelectedSize(C4DAtom *obj, Vector &size, Vector &center);
+    
+    Bool ScaleUVWs_(void);
 };
 
 

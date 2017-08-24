@@ -60,7 +60,52 @@ Bool ObjectResizeDialog::UpdateSizeField_()
     return true;
 }
 
-
+Bool ObjectResizeDialog::GetUVWSelectedSize(C4DAtom *obj , Vector &size, Vector &center)
+{
+    BaseDocument* doc = GetActiveDocument();
+    if (!doc)
+        return false;
+    TempUVHandle* handle = GetActiveUVSet(doc, GETACTIVEUVSET_ALL);
+    if (handle)
+    {
+        PolygonObject* op = (PolygonObject*) obj;
+        LMinMax bb;
+        bb.Init();
+        UVWStruct* uvwAddr = handle->GetUVW();
+        if (!uvwAddr)
+            return false;
+        
+        if (doc->GetMode()==Muvpoints)
+        {
+            BaseSelect* bsp = handle->GetUVPointSel();
+            for (Int32 i = 0;  i < op->GetPolygonCount() * 4; i++)
+                if (bsp->IsSelected(i))
+                    bb.AddPoint((Vector)uvwAddr[i/4][i % 4]);
+            
+            
+        }
+        else if (doc->GetMode()==Muvpolygons)
+        {
+            BaseSelect* bs = handle->GetPolySel();
+            for (Int32 i = 0 ; i < op->GetPolygonCount();i++)
+                if (bs->IsSelected(i))
+                {
+                    bb.AddPoints(uvwAddr[i].a, uvwAddr[i].b);
+                    bb.AddPoints(uvwAddr[i].c, uvwAddr[i].d);
+                }
+            
+        }
+        
+        FreeActiveUVSet(handle);
+        size = bb.GetRad()*2;
+        center = bb.GetMp();
+        return true;
+        
+    }
+    FreeActiveUVSet(handle);
+    return false;
+    
+}
 Bool ObjectResizeDialog::UpdateUI_()
 {
     ActivateField_(false);
@@ -83,13 +128,27 @@ Bool ObjectResizeDialog::UpdateUI_()
     
     Int32 docMode = doc->GetMode();
 
-    //TODO: add the uvs
-    //    if (docMode == Muvpolygons)
-    //        GePrint("uvpoly mode");
-    //
-
     
-    if ((docMode == Mpoints) ||
+    if ((docMode == Muvpolygons) ||
+        (docMode == Muvpoints) )
+        
+    {
+        if (selection->GetCount() > 1 )
+            SetUIValue_(-1.0, -1.0, -1.0, true);
+        else
+        {
+            
+            Vector sizebb, centerbb;
+            GetUVWSelectedSize(selection->GetIndex(0),sizebb,centerbb);
+            SetFloat(ID_VSIZEX, sizebb.x );
+            SetFloat(ID_VSIZEY, sizebb.y );
+            SetFloat(ID_VSIZEZ, 0.0);
+            ActivateField_(true);
+
+        }
+    }
+    
+    else if ((docMode == Mpoints) ||
         (docMode == Mpolygons) ||
         (docMode == Medges)
         )
@@ -248,7 +307,6 @@ Bool ObjectResizeDialog::ModifyScaleObject_()
                 if (bLockZ)
                     ratio.z = ratio.y;
                 
-                
                 doc->AddUndo(UNDOTYPE_CHANGE, op);
                 ScaleObject_(op, ratio);
             }
@@ -311,6 +369,8 @@ Vector ObjectResizeDialog::GetSelectionSize_(C4DAtom* op, Int32 mode)
     {
         bs = obj->GetPolygonS();
         const CPolygon* pcaddr = obj->GetPolygonR();
+        
+        
         for (Int32 i = 0; i < obj->GetPolygonCount(); i++ , pcaddr++)
             if (bs->IsSelected(i))
                 for (Int32 j= 0; j < 4; j++)
@@ -427,7 +487,9 @@ Bool ObjectResizeDialog::ModifyScaleSelection_()
     {
         PolygonObject *op  = (PolygonObject*)selection->GetIndex(0);
         
-        const Matrix mdaxis = op->GetModelingAxis(doc);
+        Matrix mdaxis = Matrix();
+        const Matrix mdAxisTemp = op->GetModelingAxis(doc);
+        mdaxis.off = mdAxisTemp.off;
         
         
         Vector *paddr = op->GetPointW();
@@ -491,9 +553,6 @@ Bool ObjectResizeDialog::ModifyScaleSelection_()
         }
         
         
-        
-        
-        
         const Matrix mg = op->GetMg();
         
         Vector ratio = GetRatio(GetSelectionSize_(selection->GetIndex(0), doc->GetMode()));
@@ -503,9 +562,6 @@ Bool ObjectResizeDialog::ModifyScaleSelection_()
         for (Int32 i  = 0; i < op->GetPointCount(); i++, paddr++)
             if (bs->IsSelected(i))
                 *paddr = ~mg * mdaxis * (ratio * (~mdaxis * mg * *paddr));
-        
-        
-        
         
         
         if ((op->GetInfo() & OBJECT_ISSPLINE) == OBJECT_ISSPLINE)
@@ -534,6 +590,78 @@ Bool ObjectResizeDialog::ModifyScaleSelection_()
     return true;
 }
 
+Bool ObjectResizeDialog::ScaleUVWs_()
+{
+    BaseDocument* doc = GetActiveDocument();
+    if (!doc)
+        return false;
+    // CallCommand(170103) open the texture view.
+    
+    AutoAlloc<AtomArray> selection;
+    if (!selection)
+        return false;
+    doc->GetActiveObjects(*selection, GETACTIVEOBJECTFLAGS_0);
+    if (selection->GetCount() ==0)
+        return false;
+    
+    PolygonObject* op = (PolygonObject*) selection->GetIndex(0);
+    
+    if (selection->GetCount() == 1)
+    {
+        TempUVHandle* handle = GetActiveUVSet(doc, GETACTIVEUVSET_ALL);
+        if (handle)
+        {
+            UVWStruct* uvwAddr = handle->GetUVW();
+            if (!uvwAddr)
+                return false;
+            Vector sizebb;
+            Matrix center = Matrix();
+            GetUVWSelectedSize(selection->GetIndex(0), sizebb, center.off);
+            Vector ratio = Vector(1.0);
+            
+            
+            ratio = GetRatio(sizebb);
+            
+            
+            
+            if (doc->GetMode()==Muvpoints)
+            {
+                BaseSelect* bsp = handle->GetUVPointSel();
+                for (Int32 i = 0;  i < op->GetPolygonCount() * 4; i++)
+                    if (bsp->IsSelected(i))
+                        uvwAddr[i/4][i % 4] =  center * ( ~center * uvwAddr[i/4][i % 4] *  ratio);
+                
+            }
+            else if (doc->GetMode()==Muvpolygons)
+            {
+                BaseSelect* bs = handle->GetPolySel();
+                for (Int32 i = 0 ; i < op->GetPolygonCount();i++)
+                    if (bs->IsSelected(i))
+                    {
+                        uvwAddr[i].a = center * (~center * uvwAddr[i].a * ratio);
+                        uvwAddr[i].b = center * (~center * uvwAddr[i].b * ratio);
+                        uvwAddr[i].c = center * (~center * uvwAddr[i].c * ratio);
+                        uvwAddr[i].d = center * (~center * uvwAddr[i].d * ratio);
+                    }
+
+                
+            }
+            
+            
+            handle->SetUVW(uvwAddr);
+            
+        }
+      
+        
+        
+        FreeActiveUVSet(handle);
+    }
+    
+    op->Message(MSG_UPDATE);
+    
+    return false;
+}
+
 
 Bool ObjectResizeDialog::Modification_()
 {
@@ -550,6 +678,10 @@ Bool ObjectResizeDialog::Modification_()
         case Mpolygons:
         case Medges:
             ModifyScaleSelection_();
+            break;
+        case Muvpolygons:
+        case Muvpoints:
+            ScaleUVWs_();
             break;
     }
     
