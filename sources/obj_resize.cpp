@@ -30,6 +30,37 @@ Bool ObjectResizeDialog::CheckObjectType_(AtomArray *objList)
     return true;
 }
 
+void ObjectResizeDialog::ActivateField_(Bool status)
+{
+    Enable(ID_VSIZEX, status);
+    Enable(ID_VSIZEY, status);
+    Enable(ID_VSIZEZ, status);
+    Enable(LOCKX, status);
+    Enable(LOCKY, status);
+    Enable(LOCKZ, status);
+    UpdateSizeField_();
+}
+
+Bool ObjectResizeDialog::UpdateSizeField_()
+{
+   
+    Bool bLockX;
+    Bool bLockY;
+    Bool bLockZ;
+    GetBool(LOCKX, bLockX);
+    GetBool(LOCKY, bLockY);
+    GetBool(LOCKZ, bLockZ);
+    if (IsEnabled(LOCKX))
+        Enable(ID_VSIZEX, bLockX);
+    if (IsEnabled(LOCKY))
+        Enable(ID_VSIZEY, bLockY);
+    if (IsEnabled(LOCKZ))
+        Enable(ID_VSIZEZ, bLockZ);
+    
+    return true;
+}
+
+
 Bool ObjectResizeDialog::UpdateUI_()
 {
     ActivateField_(false);
@@ -121,13 +152,17 @@ Bool ObjectResizeDialog::SetUIValue_(Float sizeX, Float sizeY, Float sizeZ, Bool
     return true;
 }
 
-Bool ObjectResizeDialog::ScaleObject_(BaseObject *op, Float &ratio)
+Bool ObjectResizeDialog::ScaleObject_(BaseObject *op, Vector &ratio)
 {
     
     Vector* paddr = ToPoly(op)->GetPointW();
     if (!paddr)
         return false;
-    if (CompareFloatTolerant(ratio, 0.0))
+    if (CompareFloatTolerant(ratio.x, 0.0))
+        return false;
+    if (CompareFloatTolerant(ratio.y, 0.0))
+        return false;
+    if (CompareFloatTolerant(ratio.z, 0.0))
         return false;
     
     for (Int32 i = 0; i < ToPoly(op)->GetPointCount(); i++, paddr++)
@@ -176,33 +211,59 @@ Bool ObjectResizeDialog::ModifyScaleObject_()
         GetFloat(ID_VSIZEY, ratioUI.y);
         GetFloat(ID_VSIZEZ, ratioUI.z);
         doc->StartUndo();
+
+        
+        Bool bLockX;
+        GetBool(LOCKX, bLockX);
+        
+        Bool bLockY;
+        GetBool(LOCKY, bLockY);
+        
+        Bool bLockZ;
+        GetBool(LOCKZ, bLockZ);
+        
         
         for (Int32 i = 0; i < selection->GetCount(); i++)
         {
             BaseObject* op = (BaseObject*)selection->GetIndex(i);
-            Float ratio = 1.0;
+            Vector ratio = Vector(1.0);
             Vector currentSize = GetObjectSize_(op);
+            
             if (!CompareFloatTolerant(ratioUI.x, 0.0))
             {
-                ratio = ratioUI.x / currentSize.x;
+                ratio.x = ratioUI.x / currentSize.x;
+                if (bLockY)
+                    ratio.y = ratio.x;
+                if (bLockZ)
+                    ratio.z = ratio.x;
                 doc->AddUndo(UNDOTYPE_CHANGE, op);
                 ScaleObject_(op, ratio);
             }
 
             else if (!CompareFloatTolerant(ratioUI.y, 0.0))
             {
-                ratio = ratioUI.y / currentSize.y;
+                ratio.y = ratioUI.y / currentSize.y;
+                if (bLockX)
+                    ratio.y = ratio.y;
+                if (bLockZ)
+                    ratio.z = ratio.y;
+                
+                
                 doc->AddUndo(UNDOTYPE_CHANGE, op);
                 ScaleObject_(op, ratio);
             }
 
             else if (!CompareFloatTolerant(ratioUI.z, 0.0))
             {
-                ratio = ratioUI.z / currentSize.z;
+                ratio.z = ratioUI.z / currentSize.z;
+                if (bLockY)
+                    ratio.y = ratio.z;
+                if (bLockX)
+                    ratio.x = ratio.z;
+
                 doc->AddUndo(UNDOTYPE_CHANGE, op);
                 ScaleObject_(op, ratio);
             }
-
             
         }
         
@@ -212,7 +273,7 @@ Bool ObjectResizeDialog::ModifyScaleObject_()
     else
     {
         BaseObject *op = (BaseObject*)selection->GetIndex(0);
-        Float ratio = GetRatio(GetObjectSize_(op));
+        Vector ratio = GetRatio(GetObjectSize_(op));
         
         doc->StartUndo();
         doc->AddUndo(UNDOTYPE_CHANGE, op);
@@ -288,11 +349,12 @@ Vector ObjectResizeDialog::GetSelectionSize_(C4DAtom* op, Int32 mode)
     return bb.GetRad()*2;
 }
 
-Float ObjectResizeDialog::GetRatio(Vector actualSize)
+Vector ObjectResizeDialog::GetRatio(Vector actualSize)
 {
     
     //avoid divide by zero
     Vector ratio = Vector(1.0);
+    Float ratioG;
     // avoid divide by 0
     if (CompareFloatTolerant(actualSize.x, 0.0))
         ratio.x = 1.0;
@@ -316,15 +378,33 @@ Float ObjectResizeDialog::GetRatio(Vector actualSize)
         GetFloat(ID_VSIZEZ, ratio.z);
         ratio.z /= actualSize.z;
     }
+        if (!CompareFloatTolerant(ratio.x, 1.0))
+            ratioG = ratio.x;
+        else if (!CompareFloatTolerant(ratio.y, 1.0))
+            ratioG = ratio.y;
+        else if (!CompareFloatTolerant(ratio.z, 1.0))
+            ratioG = ratio.z;
     
-    if (!CompareFloatTolerant(ratio.x, 1.0))
-        return ratio.x;
-    else if (!CompareFloatTolerant(ratio.y, 1.0))
-        return ratio.y;
-    else if (!CompareFloatTolerant(ratio.z, 1.0))
-        return ratio.z;
+    Vector res(1.0);
+    
+    Bool bLockX;
+    GetBool(LOCKX, bLockX);
+     if (bLockX)
+         res.x = ratioG;
+    
+    Bool bLockY;
+    GetBool(LOCKY, bLockY);
+    if (bLockY)
+        res.y = ratioG;
+    
+    Bool bLockZ;
+    GetBool(LOCKZ, bLockZ);
+    if (bLockZ)
+        res.z = ratioG;
+    
+    
+    return res;
 
-    return 1.0;
 }
 
 Bool ObjectResizeDialog::ModifyScaleSelection_()
@@ -416,7 +496,7 @@ Bool ObjectResizeDialog::ModifyScaleSelection_()
         
         const Matrix mg = op->GetMg();
         
-        Float ratio = GetRatio(GetSelectionSize_(selection->GetIndex(0), doc->GetMode()));
+        Vector ratio = GetRatio(GetSelectionSize_(selection->GetIndex(0), doc->GetMode()));
         
         doc->StartUndo();
         doc->AddUndo(UNDOTYPE_CHANGE, op);
@@ -478,16 +558,7 @@ Bool ObjectResizeDialog::Modification_()
     return true;
 }
 
-void ObjectResizeDialog::ActivateField_(Bool status)
-{
-    Enable(ID_VSIZEX, status);
-    Enable(ID_VSIZEY, status);
-    Enable(ID_VSIZEZ, status);
-    Enable(LOCKX, status);
-    Enable(LOCKY, status);
-    Enable(LOCKZ, status);
-    
-}
+
 
 Bool ObjectResizeDialog::InitValues()
 {
@@ -541,6 +612,9 @@ Bool ObjectResizeDialog::Command(Int32 id, const BaseContainer &msg)
 {
     if (id == ID_VSIZEX || id==ID_VSIZEY || id==ID_VSIZEZ )
         Modification_();
+    if (id == LOCKX || id==LOCKY || id==LOCKZ )
+        UpdateSizeField_();
+    
     return true;
 }
 

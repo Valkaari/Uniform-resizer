@@ -29,8 +29,19 @@ private :
 //    Vector  actualSize_; ///< actual size of the object 0 if error 1 if multiple object selected.
     
     
+    //----------------------------------------------------------------------------------------
+    ///get the ratio based on actualSize and the UI values.
+    ///@param[in] actualSize the size to compare with the UI values
+    ///@return vector of the ratio in every directions.
+    //----------------------------------------------------------------------------------------
+    Vector GetRatio(Vector actualSize );
     
-    Float GetRatio(Vector actualSize );
+    
+    //----------------------------------------------------------------------------------------
+    ///disable the size field if the check box isn't true.
+    ///@return bool if success.
+    //----------------------------------------------------------------------------------------
+    Bool UpdateSizeField_();
     
     //----------------------------------------------------------------------------------------
     ///update the UI with the size of object or disable fields
@@ -73,7 +84,7 @@ private :
     ///@param[in] ratio the ratio
     ///@return true if success
     //----------------------------------------------------------------------------------------
-    Bool ScaleObject_(BaseObject* op,Float &ratio);
+    Bool ScaleObject_(BaseObject* op,Vector &ratio);
     
     //----------------------------------------------------------------------------------------
     ///Scale one or several objects.
