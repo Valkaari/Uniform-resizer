@@ -213,6 +213,10 @@ Bool ObjectResizeDialog::SetUIValue_(Float sizeX, Float sizeY, Float sizeZ, Bool
 
 Bool ObjectResizeDialog::ScaleObject_(BaseObject *op, Vector &ratio)
 {
+    BaseDocument *doc = GetActiveDocument();
+    if (!doc)
+        return false;
+    
     
     Vector* paddr = ToPoly(op)->GetPointW();
     if (!paddr)
@@ -224,25 +228,35 @@ Bool ObjectResizeDialog::ScaleObject_(BaseObject *op, Vector &ratio)
     if (CompareFloatTolerant(ratio.z, 0.0))
         return false;
     
-    for (Int32 i = 0; i < ToPoly(op)->GetPointCount(); i++, paddr++)
+    if (doc->GetMode()==Mobject)
     {
-        *paddr *= ratio;
+        ratio *= op->GetRelScale();
+        
+        op->SetRelScale(ratio);
     }
-
-    if ((op->GetInfo() & OBJECT_ISSPLINE) == OBJECT_ISSPLINE)
+    
+    else
     {
-        SplineObject* opSpline = (SplineObject*)op;
-        if (opSpline->GetInterpolationType() == SPLINETYPE_BEZIER)
+        
+        for (Int32 i = 0; i < ToPoly(op)->GetPointCount(); i++, paddr++)
         {
-            Tangent *top = opSpline->GetTangentW();
-            for (Int32 i = 0 ; i < opSpline->GetTangentCount(); i++, top++)
+            *paddr *= ratio;
+        }
+        
+        if ((op->GetInfo() & OBJECT_ISSPLINE) == OBJECT_ISSPLINE)
+        {
+            SplineObject* opSpline = (SplineObject*)op;
+            if (opSpline->GetInterpolationType() == SPLINETYPE_BEZIER)
             {
-                top->vl *= ratio;
-                top->vr *= ratio;
+                Tangent *top = opSpline->GetTangentW();
+                for (Int32 i = 0 ; i < opSpline->GetTangentCount(); i++, top++)
+                {
+                    top->vl *= ratio;
+                    top->vr *= ratio;
+                }
             }
         }
     }
-    
     op->Message(MSG_UPDATE);
     
     return true;
@@ -252,7 +266,8 @@ Bool ObjectResizeDialog::ScaleObject_(BaseObject *op, Vector &ratio)
 Bool ObjectResizeDialog::ModifyScaleObject_()
 {
     BaseDocument *doc = GetActiveDocument();
-    
+    if (!doc)
+        return false;
     AutoAlloc<AtomArray> selection;
     if (!selection)
         return false;
@@ -412,9 +427,12 @@ Vector ObjectResizeDialog::GetSelectionSize_(C4DAtom* op, Int32 mode)
 Vector ObjectResizeDialog::GetRatio(Vector actualSize)
 {
     
+    
+    
+    
     //avoid divide by zero
     Vector ratio = Vector(1.0);
-    Float ratioG;
+    Float ratioG = 1.0;
     // avoid divide by 0
     if (CompareFloatTolerant(actualSize.x, 0.0))
         ratio.x = 1.0;
@@ -422,6 +440,7 @@ Vector ObjectResizeDialog::GetRatio(Vector actualSize)
     {
         GetFloat(ID_VSIZEX, ratio.x);
         ratio.x /= actualSize.x;
+        
     }
     
     if (CompareFloatTolerant(actualSize.y, 0.0))
@@ -430,6 +449,7 @@ Vector ObjectResizeDialog::GetRatio(Vector actualSize)
     {
         GetFloat(ID_VSIZEY, ratio.y);
         ratio.y /= actualSize.y;
+        
     }
     if (CompareFloatTolerant(actualSize.z, 0.0))
         ratio.z = 1.0;
@@ -437,6 +457,7 @@ Vector ObjectResizeDialog::GetRatio(Vector actualSize)
     {
         GetFloat(ID_VSIZEZ, ratio.z);
         ratio.z /= actualSize.z;
+        
     }
         if (!CompareFloatTolerant(ratio.x, 1.0))
             ratioG = ratio.x;
@@ -479,11 +500,7 @@ Bool ObjectResizeDialog::ModifyScaleSelection_()
     if (selection->GetCount() ==0)
         return false;
     
-    if (selection->GetCount()>1)
-    {
-        GePrint("multi selection");
-    }
-    else
+    if (selection->GetCount() ==1)
     {
         PolygonObject *op  = (PolygonObject*)selection->GetIndex(0);
         
