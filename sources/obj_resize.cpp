@@ -233,12 +233,21 @@ Vector ObjectResizeDialog::GetObjectSize_(BaseObject *op)
 }
 Bool ObjectResizeDialog::SetUIValue_(Float sizeX, Float sizeY, Float sizeZ, Bool tristate)
 {
-  
-    if (!SetFloat(ID_VSIZEX, sizeX,-1.0e18,1.0e18,1.0,FORMAT_METER,0.0,0.0, false,tristate))
+    BaseDocument* doc = GetActiveDocument();
+    if (!doc)
         return false;
-    if (!SetFloat(ID_VSIZEY, sizeY,-1.0e18,1.0e18,1.0,FORMAT_METER,0.0,0.0, false,tristate))
+    
+    Int32 format = FORMAT_METER;
+    if ((doc->GetMode()==Muvpoints) ||
+        (doc->GetMode()==Muvpolygons))
+        format = FORMAT_FLOAT;
+    
+    
+    if (!SetFloat(ID_VSIZEX, sizeX,-1.0e18,1.0e18,1.0,format,0.0,0.0, false,tristate))
         return false;
-    if (!SetFloat(ID_VSIZEZ, sizeZ,-1.0e18,1.0e18,1.0,FORMAT_METER,0.0,0.0, false,tristate))
+    if (!SetFloat(ID_VSIZEY, sizeY,-1.0e18,1.0e18,1.0,format,0.0,0.0, false,tristate))
+        return false;
+    if (!SetFloat(ID_VSIZEZ, sizeZ,-1.0e18,1.0e18,1.0,format,0.0,0.0, false,tristate))
         return false;
     return true;
 }
