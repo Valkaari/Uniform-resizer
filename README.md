@@ -4,7 +4,8 @@ To install, just put this directory inside your cinema4D's plugins directory.
 
 ## what it does
 
-This plugin allow you to resize object homothetically.
+This plugin allow you to resize object homothetically. (all direction)
+But you can enable or disable some axis.
 
 It work in those mode :
  multiple object selected : 
