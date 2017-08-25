@@ -26,9 +26,6 @@ public:
 
 private :
     
-//    Vector  actualSize_; ///< actual size of the object 0 if error 1 if multiple object selected.
-    
-    
     //----------------------------------------------------------------------------------------
     ///get the ratio based on actualSize and the UI values.
     ///@param[in] actualSize the size to compare with the UI values
@@ -117,9 +114,20 @@ private :
     //----------------------------------------------------------------------------------------
     Bool Modification_(void);
     
-    
+    //----------------------------------------------------------------------------------------
+    ///Get the size of the uvs selected
+    ///@param[in] obj the object where the uv are edited
+    ///@param[in,out] size the size of the selection
+    ///@param[in,out] center the center of the selection
+    ///@return true if success.
+    //----------------------------------------------------------------------------------------
     Bool GetUVWSelectedSize(C4DAtom *obj, Vector &size, Vector &center);
     
+    
+    //----------------------------------------------------------------------------------------
+    ///Scale the uvs
+    ///@return true if success to scale the uvs.
+    //----------------------------------------------------------------------------------------
     Bool ScaleUVWs_(void);
 };
 
