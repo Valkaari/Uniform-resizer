@@ -34,6 +34,15 @@ private :
     Vector GetRatio(Vector actualSize );
     
     
+    
+    //----------------------------------------------------------------------------------------
+    ///update the UI to change de XYZ to UVW according to the state
+    ///@param[in] state value to chage 0 to XYZ 1 to UVW
+    ///@return true if success
+    //----------------------------------------------------------------------------------------
+    Bool SetUItxt_(Int32 state);
+    
+    
     //----------------------------------------------------------------------------------------
     ///disable the size field if the check box isn't true.
     ///@return bool if success.

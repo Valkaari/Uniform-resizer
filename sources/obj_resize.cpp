@@ -32,6 +32,7 @@ Bool ObjectResizeDialog::CheckObjectType_(AtomArray *objList)
 
 void ObjectResizeDialog::ActivateField_(Bool status)
 {
+    
     Enable(ID_VSIZEX, status);
     Enable(ID_VSIZEY, status);
     Enable(ID_VSIZEZ, status);
@@ -106,10 +107,38 @@ Bool ObjectResizeDialog::GetUVWSelectedSize(C4DAtom *obj , Vector &size, Vector 
     return false;
     
 }
+
+Bool ObjectResizeDialog::SetUItxt_(Int32 state)
+{
+    
+    if (state == 0)
+    {
+        if (!SetString(XSTR,"X"))
+            return false;
+        if (!SetString(YSTR,"Y"))
+            return false;
+        if (!SetString(ZSTR,"Z"))
+            return false;
+    }
+    
+    if (state == 1)
+    {
+        if (!SetString(XSTR,"U"))
+            return false;
+        if (!SetString(YSTR,"V"))
+            return false;
+        if (!SetString(ZSTR,"W"))
+            return false;
+    }
+    
+    return true;
+    
+}
+
 Bool ObjectResizeDialog::UpdateUI_()
 {
     ActivateField_(false);
-    
+    SetUItxt_(0);
     BaseDocument* doc = GetActiveDocument();
     if (!doc)
         return false;
@@ -133,15 +162,19 @@ Bool ObjectResizeDialog::UpdateUI_()
         (docMode == Muvpoints) )
         
     {
+        SetUItxt_(1);
+        
+
+        
+
         if (selection->GetCount() > 1 )
             SetUIValue_(-1.0, -1.0, -1.0, true);
         else
         {
             Vector sizebb, centerbb;
             GetUVWSelectedSize(selection->GetIndex(0),sizebb,centerbb);
-            SetFloat(ID_VSIZEX, sizebb.x );
-            SetFloat(ID_VSIZEY, sizebb.y );
-            SetFloat(ID_VSIZEZ, 0.0);
+            SetUIValue_(sizebb.x, sizebb.y, 0.0);
+
             ActivateField_(true);
 
         }
@@ -201,11 +234,11 @@ Vector ObjectResizeDialog::GetObjectSize_(BaseObject *op)
 Bool ObjectResizeDialog::SetUIValue_(Float sizeX, Float sizeY, Float sizeZ, Bool tristate)
 {
   
-    if (!SetFloat(ID_VSIZEX, sizeX,-1.0e18,1.0e18,1.0,FORMAT_FLOAT,0.0,0.0, false,tristate))
+    if (!SetFloat(ID_VSIZEX, sizeX,-1.0e18,1.0e18,1.0,FORMAT_METER,0.0,0.0, false,tristate))
         return false;
-    if (!SetFloat(ID_VSIZEY, sizeY,-1.0e18,1.0e18,1.0,FORMAT_FLOAT,0.0,0.0, false,tristate))
+    if (!SetFloat(ID_VSIZEY, sizeY,-1.0e18,1.0e18,1.0,FORMAT_METER,0.0,0.0, false,tristate))
         return false;
-    if (!SetFloat(ID_VSIZEZ, sizeZ,-1.0e18,1.0e18,1.0,FORMAT_FLOAT,0.0,0.0, false,tristate))
+    if (!SetFloat(ID_VSIZEZ, sizeZ,-1.0e18,1.0e18,1.0,FORMAT_METER,0.0,0.0, false,tristate))
         return false;
     return true;
 }
@@ -705,9 +738,8 @@ Bool ObjectResizeDialog::Modification_()
 
 Bool ObjectResizeDialog::InitValues()
 {
-    SetFloat(ID_VSIZEX, 0.0);
-    SetFloat(ID_VSIZEY, 0.0);
-    SetFloat(ID_VSIZEZ, 0.0);
+
+    SetUIValue_(0.0,0.0,0.0);
     SetBool(LOCKX, true);
     SetBool(LOCKY, true);
     SetBool(LOCKZ, true);
@@ -718,23 +750,23 @@ Bool ObjectResizeDialog::InitValues()
 
 Bool ObjectResizeDialog::CreateLayout()
 {
-    
     SetTitle(GeLoadString(DIALOG_TITLE));
     GroupBegin(SIZEGROUP, BFH_SCALEFIT, 3, 1, "", 0);
+        GroupBorderSpace(3,1,1,3);
         GroupBegin(XGROUP, BFH_SCALEFIT, 3, 1, "", 0);
-        AddStaticText(XSTR, BFH_FIT, 10, 10, "X", BORDER_NONE);
-        AddCheckbox(LOCKX, BFH_FIT,SizeChr(1) , SizeChr( 1), "");
+        AddStaticText(XSTR, BFH_FIT, SizeChr(13), SizeChr(13), "X", BORDER_NONE);
+        AddCheckbox(LOCKX, BFH_FIT,SizeChr(1) , SizeChr(1), "");
         AddEditNumber(ID_VSIZEX, BFH_SCALEFIT);
         GroupEnd();
     
         GroupBegin(YGROUP, BFH_SCALEFIT, 3, 1, "", 0);
-        AddStaticText(YSTR, BFH_FIT, 10, 10, "Y", BORDER_NONE);
+        AddStaticText(YSTR, BFH_FIT, SizeChr(13), SizeChr(13), "Y", BORDER_NONE);
         AddCheckbox(LOCKY, BFH_FIT,SizeChr(1) , SizeChr(1), "");
         AddEditNumber(ID_VSIZEY, BFH_SCALEFIT);
         GroupEnd();
     
         GroupBegin(ZGROUP, BFH_SCALEFIT, 3, 1, "", 0);
-        AddStaticText(ZSTR, BFH_FIT, 10, 10, "Z", BORDER_NONE);
+        AddStaticText(ZSTR, BFH_FIT, SizeChr(13), SizeChr(13), "Z", BORDER_NONE);
         AddCheckbox(LOCKZ, BFH_FIT,SizeChr(1) , SizeChr(1), "");
         AddEditNumber(ID_VSIZEZ, BFH_SCALEFIT);
         GroupEnd();
