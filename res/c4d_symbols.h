@@ -24,7 +24,7 @@ enum
     LOCKX,
     LOCKY,
     LOCKZ,
-    
+
     
 __DUMMY___    
     

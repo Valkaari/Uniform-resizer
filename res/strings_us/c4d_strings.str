@@ -1,6 +1,5 @@
 STRINGTABLE 
 {
-  DIALOG_TITLE           	"Object Resize";
-    ID_VSIZEX               "Object's Size";
-    ID_HELP                 "Homothetic resize";
+  DIALOG_TITLE           	"Hom-resize";
+  ID_HELP                 "Homothetic resize";
 }

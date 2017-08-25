@@ -137,7 +137,6 @@ Bool ObjectResizeDialog::UpdateUI_()
             SetUIValue_(-1.0, -1.0, -1.0, true);
         else
         {
-            
             Vector sizebb, centerbb;
             GetUVWSelectedSize(selection->GetIndex(0),sizebb,centerbb);
             SetFloat(ID_VSIZEX, sizebb.x );
@@ -318,7 +317,7 @@ Bool ObjectResizeDialog::ModifyScaleObject_()
             {
                 ratio.y = ratioUI.y / currentSize.y;
                 if (bLockX)
-                    ratio.y = ratio.y;
+                    ratio.x = ratio.y;
                 if (bLockZ)
                     ratio.z = ratio.y;
                 
@@ -426,10 +425,6 @@ Vector ObjectResizeDialog::GetSelectionSize_(C4DAtom* op, Int32 mode)
 
 Vector ObjectResizeDialog::GetRatio(Vector actualSize)
 {
-    
-    
-    
-    
     //avoid divide by zero
     Vector ratio = Vector(1.0);
     Float ratioG = 1.0;
@@ -440,7 +435,6 @@ Vector ObjectResizeDialog::GetRatio(Vector actualSize)
     {
         GetFloat(ID_VSIZEX, ratio.x);
         ratio.x /= actualSize.x;
-        
     }
     
     if (CompareFloatTolerant(actualSize.y, 0.0))
@@ -786,12 +780,12 @@ Bool RegisterObjectResize(void);
 
 Bool RegisterObjectResize() {
     Filename iconPath = GeGetPluginPath();
-    iconPath += "res";  iconPath += "icons";  iconPath +="objectresize.tif";
+    iconPath += "res";  iconPath += "icons";  iconPath +="hom-resize.tif";
     AutoAlloc<BaseBitmap> icon;
     icon->Init(iconPath.GetString());
 
     
-      return RegisterCommandPlugin(ID_OBJECT_RESIZE, "Object Resize", 0, icon, "", ObjectResizeCommand::Alloc());
+      return RegisterCommandPlugin(ID_OBJECT_RESIZE, GeLoadString(DIALOG_TITLE), 0, icon, GeLoadString(ID_HELP), ObjectResizeCommand::Alloc());
     
 }
 

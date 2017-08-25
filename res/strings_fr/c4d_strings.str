@@ -1,7 +1,6 @@
 STRINGTABLE 
 {
-  DIALOG_TITLE           "Redimensionnement Objet";
-    ID_VSIZEX               "Taille";
-    ID_HELP                  "Redimensionnement Homot\u00e9tic";
+  DIALOG_TITLE           "Hom-Resize";
+  ID_HELP                  "Redimensionnement Homot\u00e9tic";
 
 }
