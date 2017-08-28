@@ -782,24 +782,26 @@ Bool ObjectResizeDialog::CreateLayout()
     
     GroupEnd();
     
-    return true;
+    return GeDialog::CreateLayout();
 }
 
 Bool ObjectResizeDialog::CoreMessage(Int32 id, const BaseContainer &msg)
 {
+    
     if (id == EVMSG_CHANGE)
         UpdateUI_();
-    return true;
+    return GeDialog::CoreMessage(id, msg);
 }
 
 Bool ObjectResizeDialog::Command(Int32 id, const BaseContainer &msg)
 {
+    
     if (id == ID_VSIZEX || id==ID_VSIZEY || id==ID_VSIZEZ )
         Modification_();
     if (id == LOCKX || id==LOCKY || id==LOCKZ )
         UpdateSizeField_();
     
-    return true;
+    return GeDialog::Command(id, msg);
 }
 
 
@@ -810,7 +812,7 @@ Bool ObjectResizeCommand::Execute(BaseDocument *doc)
 }
 Bool ObjectResizeCommand::RestoreLayout(void *secret)
 {
-    return dlg_.RestoreLayout(DLG_TYPE_ASYNC, 0, secret);
+    return dlg_.RestoreLayout(ID_OBJECT_RESIZE, 0, secret);
     
 }
 
