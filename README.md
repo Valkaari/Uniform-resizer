@@ -22,6 +22,11 @@ It work in those mode :
 ## compatible version 
 R16+ all packages.
 
+## Open Source
+
+Source are includes.
+
+
 ## credits
 
 thanks to lapko from http://motion-cafe.com/ for ideas, testing and support.
