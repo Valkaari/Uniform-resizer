@@ -1,6 +1,6 @@
 ## installation
 
-To install, just put this directory inside your cinema4D's plugins directory.
+To install, read the install.txt or install.pdf
 
 ## what it does
 
