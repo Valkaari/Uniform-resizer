@@ -145,7 +145,7 @@ Bool ObjectResizeDialog::UpdateUI_()
     AutoAlloc<AtomArray> selection;
     if (!selection)
         return false;
-    doc->GetActiveObjects(*selection, GETACTIVEOBJECTFLAGS_0);
+    doc->GetActiveObjects(*selection, GETACTIVEOBJECTFLAGS_CHILDREN);
     if (selection->GetCount() ==0)
         return false;
 
@@ -229,7 +229,16 @@ Vector ObjectResizeDialog::GetObjectSize_(BaseObject *op)
     
     if (!op)
         return Vector(0);
-    return op->GetRad()*2 * op->GetAbsScale();
+    Matrix pmg = op->GetUpMg();
+    Vector size = Vector(1);
+    size = op->GetRad() * 2.0 * op->GetAbsScale();
+    
+    size.x *= pmg.v1.GetLength();
+    size.y *= pmg.v2.GetLength();
+    size.z *= pmg.v3.GetLength();
+    
+    
+    return size;
 }
 Bool ObjectResizeDialog::SetUIValue_(Float sizeX, Float sizeY, Float sizeZ, Bool tristate)
 {
@@ -312,7 +321,7 @@ Bool ObjectResizeDialog::ModifyScaleObject_()
     AutoAlloc<AtomArray> selection;
     if (!selection)
         return false;
-    doc->GetActiveObjects(*selection, GETACTIVEOBJECTFLAGS_0);
+    doc->GetActiveObjects(*selection, GETACTIVEOBJECTFLAGS_CHILDREN);
     if (selection->GetCount()==0)
         return false;
     if (!CheckObjectType_(selection))
@@ -410,6 +419,8 @@ Vector ObjectResizeDialog::GetSelectionSize_(C4DAtom* op, Int32 mode)
     LMinMax bb;
     bb.Init();
     PolygonObject* obj = (PolygonObject*)op;
+    if (!obj)
+        return Vector(1.0);
     BaseSelect* bs;
     const Vector* paddr = obj->GetPointR();
     
@@ -459,10 +470,17 @@ Vector ObjectResizeDialog::GetSelectionSize_(C4DAtom* op, Int32 mode)
         
     }
     
+    Matrix pmg = obj->GetUpMg();
+    Vector size = Vector(1);
+    size = bb.GetRad() * 2.0 * obj->GetAbsScale();
     
+    size.x *= pmg.v1.GetLength();
+    size.y *= pmg.v2.GetLength();
+    size.z *= pmg.v3.GetLength();
+
     
 
-    return bb.GetRad()*2;
+    return size;
 }
 
 Vector ObjectResizeDialog::GetRatio(Vector actualSize)
@@ -532,16 +550,17 @@ Bool ObjectResizeDialog::ModifyScaleSelection_()
     AutoAlloc<AtomArray> selection;
     if (!selection)
         return false;
-    doc->GetActiveObjects(*selection, GETACTIVEOBJECTFLAGS_0);
+    doc->GetActiveObjects(*selection, GETACTIVEOBJECTFLAGS_CHILDREN);
     if (selection->GetCount() ==0)
         return false;
-    
+    Matrix axisSavedMatrix = Matrix();
     if (selection->GetCount() ==1)
     {
         PolygonObject *op  = (PolygonObject*)selection->GetIndex(0);
         
         Matrix mdaxis = Matrix();
         const Matrix mdAxisTemp = op->GetModelingAxis(doc);
+        axisSavedMatrix = mdAxisTemp;
         mdaxis.off = mdAxisTemp.off;
         
         
@@ -636,7 +655,8 @@ Bool ObjectResizeDialog::ModifyScaleSelection_()
         
         doc->EndUndo();
         op->Message(MSG_UPDATE);
-            
+        
+        
         
     }
     
@@ -653,7 +673,7 @@ Bool ObjectResizeDialog::ScaleUVWs_()
     AutoAlloc<AtomArray> selection;
     if (!selection)
         return false;
-    doc->GetActiveObjects(*selection, GETACTIVEOBJECTFLAGS_0);
+    doc->GetActiveObjects(*selection, GETACTIVEOBJECTFLAGS_CHILDREN);
     if (selection->GetCount() ==0)
         return false;
     
@@ -721,7 +741,7 @@ Bool ObjectResizeDialog::Modification_()
     BaseDocument* doc = GetActiveDocument();
     if (!doc)
         return false;
-     Int32 docMode = doc->GetMode();
+    Int32 docMode = doc->GetMode();
     switch (docMode) {
         case Mobject:
         case Mmodel:
@@ -738,8 +758,8 @@ Bool ObjectResizeDialog::Modification_()
             break;
     }
     
-    
     EventAdd();
+    
     return true;
 }
 
