@@ -1,6 +1,6 @@
 STRINGTABLE 
 {
-  DIALOG_TITLE           "Hom-Resize";
-  ID_HELP                  "Redimensionnement Homot\u00e9tic";
+  DIALOG_TITLE           "Uniforme-Resizer";
+  ID_HELP                  "Redimensionnement Uniforme";
 
 }
