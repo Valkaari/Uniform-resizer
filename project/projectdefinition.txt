@@ -1,0 +1,21 @@
+// Configuration of a custom solution in the projectdefinition.txt file
+// support Windows and macOS
+Platform=Win64;OSX
+
+// this is a solution
+Type=DLL
+
+// API dependencies
+APIS=cinema.framework;mesh_misc.framework;math.framework;core.framework;
+
+
+
+// C4D component
+C4D=true
+
+stylecheck.level=0 // must be set after c4d=true
+
+
+
+// Custom ID
+ModuleId=com.valkaari.UniformResizer

@@ -15,6 +15,9 @@ Bool PluginStart(void)
     
     if (!RegisterObjectResize())
         return false;
+	GePrint(maxon::String("---------------"));
+	GePrint(maxon::String("Uniform Resizer v1.15 "));
+	GePrint(maxon::String("---------------"));
     return true;
 }
 
@@ -31,7 +34,7 @@ Bool PluginMessage(Int32 id, void* data)
     switch (id)
     {
         case C4DPL_INIT_SYS:
-            if (!resource.Init())
+            if (!g_resource.Init())
                 return false; // don't start the plugin without resource
             break;
         case C4DMSG_PRIORITY:

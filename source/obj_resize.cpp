@@ -8,7 +8,13 @@
 
 #include "c4d.h"
 #include "c4d_symbols.h"
+
+#include "c4d_snapdata.h"
+
+
 #include "obj_resize.hpp"
+
+#define VERSION 1.4
 
 #define ID_OBJECT_RESIZE 1028518
 
@@ -19,12 +25,16 @@ Bool ObjectResizeDialog::CheckObjectType_(AtomArray *objList)
         return false;
     if (objList->GetCount()==0)
         return false;
-    BaseObject* obj = nullptr;
     
+    if (objList->GetCount() == 1  && ToPoly(objList->GetIndex(0))->IsInstanceOf(Onull))
+        return true;
+
+    BaseObject* obj = nullptr;
+  
     for (Int32 i = 0; i < objList->GetCount(); i++)
     {
         obj = (BaseObject*)objList->GetIndex(i);
-        if (!obj->IsInstanceOf(Opolygon) && ((obj->GetInfo() & OBJECT_ISSPLINE) != OBJECT_ISSPLINE) )
+        if (!obj->IsInstanceOf(Opolygon) && ((obj->GetInfo() & OBJECT_ISSPLINE) != OBJECT_ISSPLINE))
            return false;
     }
     return true;
@@ -110,24 +120,25 @@ Bool ObjectResizeDialog::GetUVWSelectedSize(C4DAtom *obj , Vector &size, Vector 
 
 Bool ObjectResizeDialog::SetUItxt_(Int32 state)
 {
-    
     if (state == 0)
     {
-        if (!SetString(XSTR,"X"))
+
+		
+        if (!SetString(XSTR,maxon::String("X")))
             return false;
-        if (!SetString(YSTR,"Y"))
+        if (!SetString(YSTR, maxon::String("Y")))
             return false;
-        if (!SetString(ZSTR,"Z"))
+        if (!SetString(ZSTR, maxon::String("Z")))
             return false;
     }
     
     if (state == 1)
     {
-        if (!SetString(XSTR,"U"))
+        if (!SetString(XSTR, maxon::String("U")))
             return false;
-        if (!SetString(YSTR,"V"))
+        if (!SetString(YSTR, maxon::String("V")))
             return false;
-        if (!SetString(ZSTR,"W"))
+        if (!SetString(ZSTR, maxon::String("W")))
             return false;
     }
     
@@ -145,7 +156,7 @@ Bool ObjectResizeDialog::UpdateUI_()
     AutoAlloc<AtomArray> selection;
     if (!selection)
         return false;
-    doc->GetActiveObjects(*selection, GETACTIVEOBJECTFLAGS_CHILDREN);
+    doc->GetActiveObjects(*selection, GETACTIVEOBJECTFLAGS::CHILDREN);
     if (selection->GetCount() ==0)
         return false;
 
@@ -154,29 +165,30 @@ Bool ObjectResizeDialog::UpdateUI_()
         return false;
     }
     
+    if (ToPoly(selection->GetIndex(0))->IsInstanceOf(Onull))
+    {
+        Vector scaleRatio = ToPoly(selection->GetIndex(0))->GetRelScale();
+        SetUIValue_(scaleRatio.x, scaleRatio.y, scaleRatio.z,false,FORMAT_FLOAT);
+        ActivateField_(true);
+        return true;
+    }
+    
     
     Int32 docMode = doc->GetMode();
-
-    
     if ((docMode == Muvpolygons) ||
         (docMode == Muvpoints) )
         
     {
         SetUItxt_(1);
-        
-
-        
-
-        if (selection->GetCount() > 1 )
-            SetUIValue_(-1.0, -1.0, -1.0, true);
+        if (selection->GetCount() > 1)
+            SetUIValue_(-1.0, -1.0, -1.0, true,FORMAT_FLOAT);
         else
         {
             Vector sizebb, centerbb;
             GetUVWSelectedSize(selection->GetIndex(0),sizebb,centerbb);
-            SetUIValue_(sizebb.x, sizebb.y, 0.0);
+            SetUIValue_(sizebb.x, sizebb.y, 0.0,false,FORMAT_FLOAT);
 
             ActivateField_(true);
-
         }
     }
     
@@ -200,8 +212,7 @@ Bool ObjectResizeDialog::UpdateUI_()
     
     
     else if ((docMode = Mmodel) || (docMode == Mobject))
-    
-        {
+    {
         // all selected object have good type
         ActivateField_(true);
         if (selection->GetCount() > 1 )
@@ -225,32 +236,26 @@ Bool ObjectResizeDialog::UpdateUI_()
 Vector ObjectResizeDialog::GetObjectSize_(BaseObject *op)
 {
     
-    //TODO: the size is not correct if the tangent are going outside form of the spline
+    
     
     if (!op)
         return Vector(0);
     Matrix pmg = op->GetUpMg();
     Vector size = Vector(1);
-    size = op->GetRad() * 2.0 * op->GetAbsScale();
+    if (op->IsInstanceOf(Onull))
+        return op->GetAbsScale();
     
-    size.x *= pmg.v1.GetLength();
-    size.y *= pmg.v2.GetLength();
-    size.z *= pmg.v3.GetLength();
+    size = op->GetRad() * 2.0 * op->GetAbsScale();
+	
+    size.x *= pmg.sqmat.v1.GetLength();
+    size.y *= pmg.sqmat.v2.GetLength();
+    size.z *= pmg.sqmat.v3.GetLength();
     
     
     return size;
 }
-Bool ObjectResizeDialog::SetUIValue_(Float sizeX, Float sizeY, Float sizeZ, Bool tristate)
+Bool ObjectResizeDialog::SetUIValue_(Float sizeX, Float sizeY, Float sizeZ, Bool tristate , Int32 format)
 {
-    BaseDocument* doc = GetActiveDocument();
-    if (!doc)
-        return false;
-    
-    Int32 format = FORMAT_METER;
-    if ((doc->GetMode()==Muvpoints) ||
-        (doc->GetMode()==Muvpolygons))
-        format = FORMAT_FLOAT;
-    
     
     if (!SetFloat(ID_VSIZEX, sizeX,-1.0e18,1.0e18,1.0,format,0.0,0.0, false,tristate))
         return false;
@@ -266,11 +271,6 @@ Bool ObjectResizeDialog::ScaleObject_(BaseObject *op, Vector &ratio)
     BaseDocument *doc = GetActiveDocument();
     if (!doc)
         return false;
-    
-    
-    Vector* paddr = ToPoly(op)->GetPointW();
-    if (!paddr)
-        return false;
     if (CompareFloatTolerant(ratio.x, 0.0))
         return false;
     if (CompareFloatTolerant(ratio.y, 0.0))
@@ -278,15 +278,20 @@ Bool ObjectResizeDialog::ScaleObject_(BaseObject *op, Vector &ratio)
     if (CompareFloatTolerant(ratio.z, 0.0))
         return false;
     
-    if (doc->GetMode()==Mobject)
+    if (doc->GetMode()==Mobject || op->IsInstanceOf(Onull))
     {
         ratio *= op->GetRelScale();
-        
-        op->SetRelScale(ratio);
+        if (op->IsInstanceOf(Onull))
+            op->SetRelScale(ratio*2.0);
+        else
+            op->SetRelScale(ratio);
     }
     
     else
     {
+        Vector* paddr = ToPoly(op)->GetPointW();
+        if (!paddr)
+            return false;
         
         for (Int32 i = 0; i < ToPoly(op)->GetPointCount(); i++, paddr++)
         {
@@ -296,7 +301,7 @@ Bool ObjectResizeDialog::ScaleObject_(BaseObject *op, Vector &ratio)
         if ((op->GetInfo() & OBJECT_ISSPLINE) == OBJECT_ISSPLINE)
         {
             SplineObject* opSpline = (SplineObject*)op;
-            if (opSpline->GetInterpolationType() == SPLINETYPE_BEZIER)
+            if (opSpline->GetInterpolationType() == SPLINETYPE::BEZIER)
             {
                 Tangent *top = opSpline->GetTangentW();
                 for (Int32 i = 0 ; i < opSpline->GetTangentCount(); i++, top++)
@@ -321,7 +326,7 @@ Bool ObjectResizeDialog::ModifyScaleObject_()
     AutoAlloc<AtomArray> selection;
     if (!selection)
         return false;
-    doc->GetActiveObjects(*selection, GETACTIVEOBJECTFLAGS_CHILDREN);
+    doc->GetActiveObjects(*selection, GETACTIVEOBJECTFLAGS::CHILDREN);
     if (selection->GetCount()==0)
         return false;
     if (!CheckObjectType_(selection))
@@ -360,7 +365,7 @@ Bool ObjectResizeDialog::ModifyScaleObject_()
                     ratio.y = ratio.x;
                 if (bLockZ)
                     ratio.z = ratio.x;
-                doc->AddUndo(UNDOTYPE_CHANGE, op);
+                doc->AddUndo(UNDOTYPE::CHANGE, op);
                 ScaleObject_(op, ratio);
             }
 
@@ -372,7 +377,7 @@ Bool ObjectResizeDialog::ModifyScaleObject_()
                 if (bLockZ)
                     ratio.z = ratio.y;
                 
-                doc->AddUndo(UNDOTYPE_CHANGE, op);
+                doc->AddUndo(UNDOTYPE::CHANGE, op);
                 ScaleObject_(op, ratio);
             }
 
@@ -384,7 +389,7 @@ Bool ObjectResizeDialog::ModifyScaleObject_()
                 if (bLockX)
                     ratio.x = ratio.z;
 
-                doc->AddUndo(UNDOTYPE_CHANGE, op);
+                doc->AddUndo(UNDOTYPE::CHANGE, op);
                 ScaleObject_(op, ratio);
             }
             
@@ -396,15 +401,14 @@ Bool ObjectResizeDialog::ModifyScaleObject_()
     else
     {
         BaseObject *op = (BaseObject*)selection->GetIndex(0);
-        Vector ratio = GetRatio(GetObjectSize_(op));
-        
         doc->StartUndo();
-        doc->AddUndo(UNDOTYPE_CHANGE, op);
-        ScaleObject_(op, ratio);
-        
+        Vector ratio  = GetRatio(GetObjectSize_(op));
+        doc->AddUndo(UNDOTYPE::CHANGE, op);
+        if (op->IsInstanceOf(Onull))
+            op->SetAbsScale(op->GetAbsScale() * ratio);
+        else
+            ScaleObject_(op, ratio);
         doc->EndUndo();
-        
-        
         
     }
     
@@ -415,22 +419,40 @@ Bool ObjectResizeDialog::ModifyScaleObject_()
 
 Vector ObjectResizeDialog::GetSelectionSize_(C4DAtom* op, Int32 mode)
 {
-    
+    BaseDocument* doc = GetActiveDocument();
+    if (!doc)
+        return Vector(-1);
+
     LMinMax bb;
     bb.Init();
     PolygonObject* obj = (PolygonObject*)op;
     if (!obj)
-        return Vector(1.0);
+        return Vector(-1);
     BaseSelect* bs;
     const Vector* paddr = obj->GetPointR();
+    
+    BaseContainer bc = doc->GetData(DOCUMENTSETTINGS::GENERAL);
+    Bool stateW = bc.GetBool(DOCUMENT_STATEW);
+    BaseDraw *bd = doc->GetActiveBaseDraw();
+    if (!bd)
+        return Vector(-1);
+    Matrix mwp = GetWorkplaneMatrix(doc, nullptr);
+    
+    
+    const Matrix objMg = ToPoly(op)->GetMg();
+    
     
     if (mode == Mpoints)
     {
         bs = obj->GetPointS();
         for (Int32 i = 0 ; i < obj->GetPointCount(); i++, paddr++)
             if (bs->IsSelected(i))
-                bb.AddPoint(*paddr);
-        
+            {
+                if (stateW)
+                    bb.AddPoint( ~mwp * objMg * *paddr ) ;
+                else
+                    bb.AddPoint( *paddr) ;
+            }
     }
     else if (mode == Mpolygons)
     {
@@ -441,7 +463,13 @@ Vector ObjectResizeDialog::GetSelectionSize_(C4DAtom* op, Int32 mode)
         for (Int32 i = 0; i < obj->GetPolygonCount(); i++ , pcaddr++)
             if (bs->IsSelected(i))
                 for (Int32 j= 0; j < 4; j++)
-                    bb.AddPoint(paddr[  (*pcaddr)[j] ]  );
+                {
+                    if (stateW)
+                        bb.AddPoint(~mwp * objMg * paddr[  (*pcaddr)[j] ]  );
+                    else
+                        bb.AddPoint(paddr[  (*pcaddr)[j] ]  );
+                }
+        
     }
     else if (mode == Medges)
     {
@@ -455,13 +483,33 @@ Vector ObjectResizeDialog::GetSelectionSize_(C4DAtom* op, Int32 mode)
                 const CPolygon &poly = pcaddr[ (Int32)( i / 4)];
                 Int32 edge = i % 4;
                 if (edge == 0)
-                    bb.AddPoints(paddr[poly.a],paddr[poly.b]);
+                {
+                    if (stateW)
+                        bb.AddPoints(~mwp *objMg * paddr[poly.a],~mwp *objMg * paddr[poly.b]);
+                    else
+                        bb.AddPoints(paddr[poly.a],paddr[poly.b]);
+                }
                 if (edge == 1)
-                    bb.AddPoints(paddr[poly.b],paddr[poly.c]);
+                {
+                    if (stateW)
+                        bb.AddPoints(~mwp *objMg * paddr[poly.b],~mwp *objMg * paddr[poly.c]);
+                    else
+                        bb.AddPoints(paddr[poly.b],paddr[poly.c]);
+                }
                 if (edge == 2)
-                    bb.AddPoints(paddr[poly.c],paddr[poly.d]);
+                {
+                    if (stateW)
+                        bb.AddPoints(~mwp *objMg * paddr[poly.c],~mwp *objMg * paddr[poly.d]);
+                    else
+                        bb.AddPoints(paddr[poly.c],paddr[poly.d]);
+                }
                 if (edge == 3)
-                    bb.AddPoints(paddr[poly.d],paddr[poly.a]);
+                {
+                    if (stateW)
+                        bb.AddPoints(~mwp *objMg * paddr[poly.d],~mwp *objMg * paddr[poly.a]);
+                    else
+                        bb.AddPoints(paddr[poly.d],paddr[poly.a]);
+                }
                 
             }
             
@@ -469,15 +517,21 @@ Vector ObjectResizeDialog::GetSelectionSize_(C4DAtom* op, Int32 mode)
 
         
     }
-    
-    Matrix pmg = obj->GetUpMg();
     Vector size = Vector(1);
-    size = bb.GetRad() * 2.0 * obj->GetAbsScale();
     
-    size.x *= pmg.v1.GetLength();
-    size.y *= pmg.v2.GetLength();
-    size.z *= pmg.v3.GetLength();
-
+    
+    
+    if (stateW)
+    {
+        size = bb.GetRad() * 2.0;
+    }
+    else{
+        Matrix pmg = obj->GetUpMg();
+        size = bb.GetRad() * 2.0 * obj->GetAbsScale();
+        size.x *= pmg.sqmat.v1.GetLength();
+        size.y *= pmg.sqmat.v2.GetLength();
+        size.z *= pmg.sqmat.v3.GetLength();
+    }
     
 
     return size;
@@ -550,19 +604,28 @@ Bool ObjectResizeDialog::ModifyScaleSelection_()
     AutoAlloc<AtomArray> selection;
     if (!selection)
         return false;
-    doc->GetActiveObjects(*selection, GETACTIVEOBJECTFLAGS_CHILDREN);
+    doc->GetActiveObjects(*selection, GETACTIVEOBJECTFLAGS::CHILDREN);
     if (selection->GetCount() ==0)
         return false;
-    Matrix axisSavedMatrix = Matrix();
+    
+    BaseContainer bc = doc->GetData(DOCUMENTSETTINGS::GENERAL);
+    
+    
+    BaseDraw *bd = doc->GetActiveBaseDraw();
+    if (!bd)
+        return false;
+    
+    
+    
     if (selection->GetCount() ==1)
     {
         PolygonObject *op  = (PolygonObject*)selection->GetIndex(0);
+
         
         Matrix mdaxis = Matrix();
-        const Matrix mdAxisTemp = op->GetModelingAxis(doc);
-        axisSavedMatrix = mdAxisTemp;
-        mdaxis.off = mdAxisTemp.off;
-        
+
+        mdaxis = op->GetModelingAxis(doc);
+
         
         Vector *paddr = op->GetPointW();
         
@@ -626,20 +689,25 @@ Bool ObjectResizeDialog::ModifyScaleSelection_()
         
         
         const Matrix mg = op->GetMg();
+
         
-        Vector ratio = GetRatio(GetSelectionSize_(selection->GetIndex(0), doc->GetMode()));
+        
+        Vector ratio = GetRatio( GetSelectionSize_(selection->GetIndex(0), doc->GetMode()));
+        
+        
         
         doc->StartUndo();
-        doc->AddUndo(UNDOTYPE_CHANGE, op);
+        doc->AddUndo(UNDOTYPE::CHANGE, op);
         for (Int32 i  = 0; i < op->GetPointCount(); i++, paddr++)
             if (bs->IsSelected(i))
-                *paddr = ~mg * mdaxis * (ratio * (~mdaxis * mg * *paddr));
-        
+            {
+                    *paddr = ~mg * mdaxis * (ratio * (~mdaxis * mg * *paddr));
+            }
         
         if ((op->GetInfo() & OBJECT_ISSPLINE) == OBJECT_ISSPLINE)
         {
             SplineObject* opSpline = (SplineObject*)op;
-            if (opSpline->GetInterpolationType() == SPLINETYPE_BEZIER)
+            if (opSpline->GetInterpolationType() == SPLINETYPE::BEZIER)
             {
                 Tangent *top = opSpline->GetTangentW();
                 for (Int32 i = 0 ; i < opSpline->GetTangentCount(); i++, top++)
@@ -673,7 +741,7 @@ Bool ObjectResizeDialog::ScaleUVWs_()
     AutoAlloc<AtomArray> selection;
     if (!selection)
         return false;
-    doc->GetActiveObjects(*selection, GETACTIVEOBJECTFLAGS_CHILDREN);
+    doc->GetActiveObjects(*selection, GETACTIVEOBJECTFLAGS::CHILDREN);
     if (selection->GetCount() ==0)
         return false;
     
@@ -780,23 +848,23 @@ Bool ObjectResizeDialog::InitValues()
 Bool ObjectResizeDialog::CreateLayout()
 {
     SetTitle(GeLoadString(DIALOG_TITLE));
-    GroupBegin(SIZEGROUP, BFH_SCALEFIT, 3, 1, "", 0);
+    GroupBegin(SIZEGROUP, BFH_SCALEFIT, 3, 1, maxon::String(""), 0);
         GroupBorderSpace(3,1,1,3);
-        GroupBegin(XGROUP, BFH_SCALEFIT, 3, 1, "", 0);
-        AddStaticText(XSTR, BFH_FIT, SizeChr(13), SizeChr(13), "X", BORDER_NONE);
-        AddCheckbox(LOCKX, BFH_FIT,SizeChr(1) , SizeChr(1), "");
+        GroupBegin(XGROUP, BFH_SCALEFIT, 3, 1, maxon::String(""), 0);
+        AddStaticText(XSTR, BFH_FIT, SizeChr(13), SizeChr(13), maxon::String("X"), BORDER_NONE);
+        AddCheckbox(LOCKX, BFH_FIT,SizeChr(1) , SizeChr(1), maxon::String(""));
         AddEditNumber(ID_VSIZEX, BFH_SCALEFIT);
         GroupEnd();
     
-        GroupBegin(YGROUP, BFH_SCALEFIT, 3, 1, "", 0);
-        AddStaticText(YSTR, BFH_FIT, SizeChr(13), SizeChr(13), "Y", BORDER_NONE);
-        AddCheckbox(LOCKY, BFH_FIT,SizeChr(1) , SizeChr(1), "");
+        GroupBegin(YGROUP, BFH_SCALEFIT, 3, 1, maxon::String(""), 0);
+        AddStaticText(YSTR, BFH_FIT, SizeChr(13), SizeChr(13), maxon::String("Y"), BORDER_NONE);
+        AddCheckbox(LOCKY, BFH_FIT,SizeChr(1) , SizeChr(1), maxon::String(""));
         AddEditNumber(ID_VSIZEY, BFH_SCALEFIT);
         GroupEnd();
     
-        GroupBegin(ZGROUP, BFH_SCALEFIT, 3, 1, "", 0);
-        AddStaticText(ZSTR, BFH_FIT, SizeChr(13), SizeChr(13), "Z", BORDER_NONE);
-        AddCheckbox(LOCKZ, BFH_FIT,SizeChr(1) , SizeChr(1), "");
+        GroupBegin(ZGROUP, BFH_SCALEFIT, 3, 1, maxon::String(""), 0);
+        AddStaticText(ZSTR, BFH_FIT, SizeChr(13), SizeChr(13), maxon::String("Z"), BORDER_NONE);
+        AddCheckbox(LOCKZ, BFH_FIT,SizeChr(1) , SizeChr(1), maxon::String(""));
         AddEditNumber(ID_VSIZEZ, BFH_SCALEFIT);
         GroupEnd();
     
@@ -825,11 +893,13 @@ Bool ObjectResizeDialog::Command(Int32 id, const BaseContainer &msg)
 }
 
 
-Bool ObjectResizeCommand::Execute(BaseDocument *doc)
+
+
+Bool ObjectResizeCommand::Execute(BaseDocument* doc, GeDialog* parentManager)
 {
-    return dlg_.Open(DLG_TYPE_ASYNC, ID_OBJECT_RESIZE,-1,-1,400,50);
-    
+	return dlg_.Open(DLG_TYPE::ASYNC, ID_OBJECT_RESIZE, -1, -1, 400, 50);
 }
+
 Bool ObjectResizeCommand::RestoreLayout(void *secret)
 {
     return dlg_.RestoreLayout(ID_OBJECT_RESIZE, 0, secret);

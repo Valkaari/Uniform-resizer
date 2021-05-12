@@ -61,7 +61,7 @@ private :
     ///@param[in] sizeZ the size in the Z direction
     ///@return true if ok
     //----------------------------------------------------------------------------------------
-    Bool SetUIValue_ (Float sizeX, Float sizeY, Float sizeZ, Bool tristate = false);
+    Bool SetUIValue_ (Float sizeX, Float sizeY, Float sizeZ, Bool tristate = false, Int32 format = FORMAT_METER);
     
     
     //----------------------------------------------------------------------------------------
@@ -148,11 +148,12 @@ class ObjectResizeCommand : public CommandData
     
 public:
     
-    virtual Bool Execute(BaseDocument* doc);
-    virtual Bool RestoreLayout(void* secret);
-    
     static ObjectResizeCommand* Alloc() { return NewObjClear(ObjectResizeCommand); }
     
+    virtual Bool RestoreLayout(void* secret) override;
+
+	virtual Bool Execute(BaseDocument* doc, GeDialog* parentManager) override;
+
 private:
     ObjectResizeDialog dlg_;
     
